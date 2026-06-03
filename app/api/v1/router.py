@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.api.v1.endpoints import auth, patients
+from app.api.v1.endpoints import auth, patients, appointments, medical_records
 
 api_router = APIRouter()
 
