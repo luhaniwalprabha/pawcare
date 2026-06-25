@@ -15,6 +15,30 @@ from app.core.security import get_current_user, require_roles
 router = APIRouter()
 
 
+def queue_reminder(appointment, db):
+    """
+    Queue background reminder — wrapped in try/except so
+    Redis failure never breaks appointment creation.
+    Always queue AFTER db.commit() — never before.
+    If DB fails after queue, you'd notify for a non-existent appointment.
+    """
+    try:
+        from app.tasks.notifications import send_appointment_reminder
+        from app.models.patient import Pet, Owner
+        pet = db.query(Pet).filter(Pet.id == appointment.pet_id).first()
+        owner = db.query(Owner).filter(Owner.id == pet.owner_id).first() if pet else None
+        if pet and owner:
+            send_appointment_reminder.delay(
+                appointment_id=appointment.id,
+                pet_name=pet.name,
+                owner_email=owner.email,
+                owner_name=owner.full_name,
+                scheduled_at=appointment.scheduled_at.isoformat(),
+            )
+    except Exception as e:
+        logger.warning(f"Failed to queue reminder: {e}")
+
+
 def get_appointment_or_404(appointment_id: int, db: Session) -> Appointment:
     appointment = (
         db.query(Appointment)
@@ -87,6 +111,7 @@ def create_appointment(
     appointment = Appointment(**payload.model_dump())
     db.add(appointment)
     db.commit()
+    queue_reminder(appointment, db)
     db.refresh(appointment)
     return get_appointment_or_404(appointment.id, db)
 
@@ -142,6 +167,8 @@ def update_appointment_status(
         )
     appointment.status = payload.status
     db.commit()
+    if payload.status == AppointmentStatus.CONFIRMED:
+        queue_reminder(appointment, db)
     db.refresh(appointment)
     return get_appointment_or_404(appointment_id, db)
 
