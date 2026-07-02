@@ -7,3 +7,6 @@ __pycache__/
 .DS_Store
 alembic/versions/*.py
 !alembic/versions/.gitkeep
+.env.docker
+google-cloud-sdk/
+*.tar.gz
