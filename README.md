@@ -104,3 +104,9 @@ pawcare/
 - [ ] Phase 2 — Appointments + Medical Records
 - [ ] Phase 3 — Billing + Celery async notifications
 - [ ] Phase 4 — AI layer + React frontend + GCP deploy
+
+
+## Live Demo
+- **API:** https://pawcare-api-904405147355.asia-south1.run.app
+- **Swagger Docs:** https://pawcare-api-904405147355.asia-south1.run.app/docs
+- **Health:** https://pawcare-api-904405147355.asia-south1.run.app/api/v1/health/ready
