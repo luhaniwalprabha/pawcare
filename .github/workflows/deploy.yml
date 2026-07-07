@@ -1,41 +1,16 @@
-# .github/workflows/deploy.yml
-#
-# CI/CD Pipeline — runs on every push to main branch.
-#
-# WHAT THIS DOES:
-# 1. Checks out your code
-# 2. Authenticates with GCP using a service account key
-# 3. Builds Docker image
-# 4. Pushes to Artifact Registry
-# 5. Deploys to Cloud Run
-#
-# WHY GITHUB ACTIONS?
-# Without this, deployment is manual:
-#   - docker build locally
-#   - docker push
-#   - gcloud run deploy
-# That's 3 commands you have to remember and run every time.
-#
-# With GitHub Actions:
-#   git push → everything happens automatically
-#   You get email if deployment fails
-#   Every deployment is logged and auditable
-#
-# SECRETS:
-# GCP_SA_KEY — service account JSON key (stored in GitHub Secrets)
-# PROJECT_ID — your GCP project ID
-# These are never in your code — stored securely in GitHub.
-
 name: Deploy to Cloud Run
 
 on:
   push:
     branches:
-      - main  # only deploy on pushes to main, not feature branches
+      - main
 
 env:
   PROJECT_ID: pawcare-501205
-  REGION: asia-so  REGION: asia-so  REGION: asia-so  REGIONSERVICE: pawcare-api
+  REGION: asia-south1
+  REPOSITORY: pawcare
+  IMAGE: api
+  SERVICE: pawcare-api
 
 jobs:
   deploy:
@@ -54,39 +29,27 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Configure Docker for Artifact Registry
-        run: |
-          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+      - name: Configure Docker
+        run: gcloud auth configure-docker asia-south1-docker.pkg.dev --quiet
 
       - name: Build Docker image
-        run: |
-          docker build \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }} \
-            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
-            .
+        run: docker build -t asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api:${{ github.sha }} -t asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api:latest .
 
       - name: Push Docker image
         run: |
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
-          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest
-
+          docker push asia-south1-docker.pkg.dev/pawcare-501205          docker push asia-south1-docke  doc          docker push asker.pkg.dev/paw          dopawcare/api:late   
       - name: Deploy to Cloud Run
         run: |
-          gcloud run deploy ${{ env.SERVICE }} \
-            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }} \
-            --region=${{ env.REGION }} \
+          gcloud run depl          gapi \
+            --image=asia-south1-dock            --imag-501205/p            --image=asia- }} \
+            --region=asia-south1 \
             --platform=managed \
             --allow-unauthenticated \
             --port=8000 \
             --memory=512Mi \
             --cpu=1 \
             --min-instances=0 \
-            --max-instances=3 \
-            --set-secrets="DATABASE_URL=DATABASE_URL:latest,REDIS_URL=REDIS_URL:latest,SECRET_KEY=SECRET_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest"
+                                                                                      atest,REDIS_URL=REDIS_URL:latest,SECRET_KEY=SECRET_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest"
 
       - name: Show live URL
-        run: |
-          echo "Deployed to:"
-          gcloud run services describe ${{ env.SERVICE }} \
-            --region=${{ env.REGION }} \
-            --format="value(status.url)"
+        run: gcloud run services describe pawcare-api --region=asia-south1 --format="value(status.url)"
