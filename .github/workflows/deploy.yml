@@ -5,11 +5,6 @@ on:
     branches:
       - main
 
-env:
-  PROJECT_ID: pawcare-501205
-  REGION: asia-south1
-  IMAGE_PATH: asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api
-
 jobs:
   deploy:
     name: Build and Deploy
@@ -30,14 +25,25 @@ jobs:
       - name: Configure Docker
         run: gcloud auth configure-docker asia-south1-docker.pkg.dev --quiet
 
-      - name: Build Docker image
+      - name: Build API image
         run: docker build -t asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api:latest .
 
-      - name: Push Docker image
+      - name: Build Celery worker image
+        run: docker build -f Dockerfile.celery -t asia-south1-docker.pkg.dev/pawcare-501205/pawcare/celery-worker:latest .
+
+      - name: Push API image
         run: docker push asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api:latest
 
-      - name: Deploy to Cloud Run
+      - name: Push Celery worker image
+        run: docker push asia-south1-docker.pkg.dev/pawcare-501205/pawcare/celery-worker:latest
+
+      - name: Deploy API to Cloud Run
         run: gcloud run deploy pawcare-api --image=asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api:latest --region=asia-south1 --platform=managed --allow-unauthenticated --port=8000 --memory=512Mi --cpu=1 --min-instances=0 --max-instances=3 --set-secrets="DATABASE_URL=DATABASE_URL:latest,REDIS_URL=REDIS_URL:latest,SECRET_KEY=SECRET_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest"
 
-      - name: Show live URL
-        run: gcloud run services describe pawcare-api --region=asia-south1 --format="value(status.url)"
+      - name: Deploy Celery worker to Cloud Run
+        run: gcloud run deploy pawcare-celery-worker --image=asia-south1-docker.pkg.dev/pawcare-501205/pawcare/celery-worker:latest --region=asia-south1 --platform=managed --no-allow-unauthenticated --port=8080 --memory=512Mi --cpu=1 --min-instances=1 --max-instances=1 --set-secrets="DATABASE_URL=DATABASE_URL:latest,REDIS_URL=REDIS_URL:latest,SECRET_KEY=SECRET_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest"
+
+      - name: Show live URLs
+        run: |
+          echo "API:" && gcloud run services describe pawcare-api --region=asia-south1 --format="value(status.url)"
+          echo "Worker:" && gcloud run services describe pawcare-celery-worker --region=asia-south1 --format="value(status.url)"
