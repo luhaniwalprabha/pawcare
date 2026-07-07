@@ -10,3 +10,4 @@ alembic/versions/*.py
 .env.docker
 google-cloud-sdk/
 *.tar.gz
+github-actions-key.json

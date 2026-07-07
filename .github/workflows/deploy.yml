@@ -1,0 +1,92 @@
+# .github/workflows/deploy.yml
+#
+# CI/CD Pipeline — runs on every push to main branch.
+#
+# WHAT THIS DOES:
+# 1. Checks out your code
+# 2. Authenticates with GCP using a service account key
+# 3. Builds Docker image
+# 4. Pushes to Artifact Registry
+# 5. Deploys to Cloud Run
+#
+# WHY GITHUB ACTIONS?
+# Without this, deployment is manual:
+#   - docker build locally
+#   - docker push
+#   - gcloud run deploy
+# That's 3 commands you have to remember and run every time.
+#
+# With GitHub Actions:
+#   git push → everything happens automatically
+#   You get email if deployment fails
+#   Every deployment is logged and auditable
+#
+# SECRETS:
+# GCP_SA_KEY — service account JSON key (stored in GitHub Secrets)
+# PROJECT_ID — your GCP project ID
+# These are never in your code — stored securely in GitHub.
+
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches:
+      - main  # only deploy on pushes to main, not feature branches
+
+env:
+  PROJECT_ID: pawcare-501205
+  REGION: asia-so  REGION: asia-so  REGION: asia-so  REGIONSERVICE: pawcare-api
+
+jobs:
+  deploy:
+    name: Build and Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        run: |
+          gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev --quiet
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }} \
+            -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
+            .
+
+      - name: Push Docker image
+        run: |
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${{ env.SERVICE }} \
+            --image=${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }} \
+            --region=${{ env.REGION }} \
+            --platform=managed \
+            --allow-unauthenticated \
+            --port=8000 \
+            --memory=512Mi \
+            --cpu=1 \
+            --min-instances=0 \
+            --max-instances=3 \
+            --set-secrets="DATABASE_URL=DATABASE_URL:latest,REDIS_URL=REDIS_URL:latest,SECRET_KEY=SECRET_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest"
+
+      - name: Show live URL
+        run: |
+          echo "Deployed to:"
+          gcloud run services describe ${{ env.SERVICE }} \
+            --region=${{ env.REGION }} \
+            --format="value(status.url)"
