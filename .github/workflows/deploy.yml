@@ -8,9 +8,7 @@ on:
 env:
   PROJECT_ID: pawcare-501205
   REGION: asia-south1
-  REPOSITORY: pawcare
-  IMAGE: api
-  SERVICE: pawcare-api
+  IMAGE_PATH: asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api
 
 jobs:
   deploy:
@@ -33,23 +31,13 @@ jobs:
         run: gcloud auth configure-docker asia-south1-docker.pkg.dev --quiet
 
       - name: Build Docker image
-        run: docker build -t asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api:${{ github.sha }} -t asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api:latest .
+        run: docker build -t asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api:latest .
 
       - name: Push Docker image
-        run: |
-          docker push asia-south1-docker.pkg.dev/pawcare-501205          docker push asia-south1-docke  doc          docker push asker.pkg.dev/paw          dopawcare/api:late   
+        run: docker push asia-south1-docker.pkg.dev/pawcare-501205/pawcare/api:latest
+
       - name: Deploy to Cloud Run
-        run: |
-          gcloud run depl          gapi \
-            --image=asia-south1-dock            --imag-501205/p            --image=asia- }} \
-            --region=asia-south1 \
-            --platform=managed \
-            --allow-unauthenticated \
-            --port=8000 \
-            --memory=512Mi \
-            --cpu=1 \
-            --min-instances=0 \
-                                                                                      atest,REDIS_URL=REDIS_URL:latest,SECRET_KEY=SECRET_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest"
+        run: gcloud ru        run: gcloud ru        run: gcloud ocker.pkg.dev/pawcare-501205/pawcare/api:latest --region=asia-south1 --platform=managed --allow-unauthenticated --port=8000 --memory=512Mi --cpu=1 --min-instances=0 --max-instances=3 --set-secrets="DA     E_URL        run: gcloud ru   S_URL=REDIS_URL:latest,SECRET_        rT_        run: gcloud ruKEY=OPENAI_API_KEY:latest"
 
       - name: Show live URL
         run: gcloud run services describe pawcare-api --region=asia-south1 --format="value(status.url)"
